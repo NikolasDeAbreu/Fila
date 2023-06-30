@@ -1,0 +1,62 @@
+import random
+
+def fibo(n):
+    if n == 1 or n == 2:
+        return 1
+    else:
+        return fibo(n - 1) + fibo(n - 2)
+class Nodo:
+    def __init__(self, dado=0, proximo_nodo=None):
+        self.dado = dado
+        self.next = proximo_nodo
+
+    def __repr__(self):
+        return '%s -> %s' % (self.dado, self.next)
+
+class Fila:
+    def __init__(self):
+        self.first = None
+        self.last= None
+
+    def __repr__(self):
+        return "[" + str(self.first) + "]"
+
+    def inserir(self,valor):
+        if self.first is None:
+            self.first = Nodo(valor)
+            self.last = Nodo(valor)
+        else:
+            NovoNodo = Nodo(valor)
+            if self.first.next is None:
+                self.first.next = NovoNodo
+                self.last = NovoNodo
+            else:
+                self.last.next = NovoNodo
+                self.last = NovoNodo
+
+    def remove(self):
+        if self.first is not None:
+            self.first = self.first.next
+
+    def ffibo(self,n,termo=1):
+        if termo <= n:
+            if termo == 1:
+                self.first = Nodo(fibo(termo))
+                self.last = Nodo(fibo(termo))
+            elif termo == 2:
+                NovoNodo = Nodo(fibo(termo))
+                self.first.next = NovoNodo
+                self.last = NovoNodo
+            else:
+                NovoNodo = Nodo(fibo(termo))
+                self.last.next = NovoNodo
+                self.last = self.last.next
+            self.ffibo(n,termo+1)
+        else:
+            return self
+
+n = random.randint(1,30)
+queue = Fila()
+queue.ffibo(n)
+print(n)
+print(queue)
