@@ -1,0 +1,159 @@
+def fat(n):
+    if n == 1:
+        return 1
+    else:
+        return n * fat(n-1)
+
+def valida_entrada():
+    num = input("Informe a quantidade de elementos: ")
+    try:
+        num = int(num)
+        if num < 0:
+            print("Entrada inválida! Entrada precisa ser número inteiro positivo ou zero!")
+            return valida_entrada()
+        else:
+            return num
+    except:
+        print("Entrada inválida! Entrada precisa ser número inteiro positivo ou zero!")
+        return valida_entrada()
+
+def build_list(num,itr=0,lista=None):
+    if lista is None:
+        lista = ListaEncadeada()
+    lista.inserir(input("Elemento %d: " % (itr+1)))
+    if (itr+1) < num:
+        return build_list(num,itr+1,lista)
+    else:
+        return lista
+
+def mostra(lista):
+    while lista.head is not None:
+        permuta = ""
+        while lista.head.dado.first is not None:
+            permuta += str(lista.head.dado.first.dado)
+            lista.head.dado.first = lista.head.dado.first.next
+        print(permuta)
+        lista.head = lista.head.next
+
+def permuta(e_list,quant):
+
+    def master_key(itr=1,permuta=ListaEncadeada()):
+
+        def permutation(count=0):
+
+            while count < fat(itr-1):
+                permuta.head.dado.inserir(e_list.head.dado)
+                permuta.inserir(permuta.head.dado)
+                rpt = 0
+                aux = None
+                while rpt < (itr-1):
+                    if aux is None:
+                        aux = permuta.head.dado.copia()
+                    else:
+                        aux = aux.copia()
+                    remember = aux.first.dado
+                    aux.remove()
+                    aux.inserir(remember)
+                    permuta.inserir(aux)
+                    rpt += 1
+                permuta.head = permuta.head.next
+                count += 1
+
+        if permuta.head is None:
+            fila = Fila()
+            fila.inserir(e_list.head.dado)
+            permuta.inserir(fila)
+            e_list.head = e_list.head.next
+            return master_key(itr+1,permuta)
+        else:
+            permutation()
+            if (itr+1) <= quant:
+                e_list.head = e_list.head.next
+                return master_key(itr+1,permuta)
+            else:
+                return permuta
+
+    if quant == 0:
+        print("Não há arranjos, lista vazia.")
+    elif quant == 1:
+        print("Só há um elemento: ",e_list.head.dado)
+    else:
+        return master_key()
+
+class NodoLista:
+    def __init__(self, dado=0, proximo_nodo=None):
+        self.dado = dado
+        self.next = proximo_nodo
+    def __repr__(self):
+        return '%s -> %s' % (self.dado, self.next)
+class ListaEncadeada:
+    def __init__(self):
+        self.head = None
+    def __repr__(self):
+        return "[" + str(self.head) + "]"
+
+    def inserir(self,valor):
+        if self.head is None:
+            self.head = NodoLista(valor)
+        else:
+            NovoNodo = NodoLista(valor)
+            if self.head.next is None:
+                self.head.next = NovoNodo
+            else:
+                aux = ListaEncadeada()
+                aux.head = self.head
+                aux.endList()
+                aux.head.next = NovoNodo
+
+    def endList(self):
+        if self.head.next is not None:
+            self.head = self.head.next
+            self.endList()
+
+class NodoFila:
+    def __init__(self, dado=0, proximo_nodo=None):
+        self.dado = dado
+        self.next = proximo_nodo
+
+    def __repr__(self):
+        return '%s -> %s' % (self.dado, self.next)
+
+class Fila:
+    def __init__(self):
+        self.first = None
+        self.last= None
+
+    def __repr__(self):
+        return "[" + str(self.first) + "]"
+
+    def inserir(self, valor):
+        if self.first is None:
+            self.first = NodoFila(valor)
+            self.last = NodoFila(valor)
+        else:
+            NovoNodo = NodoFila(valor)
+            if self.first.next is None:
+                self.first.next = NovoNodo
+                self.last = NovoNodo
+            else:
+                self.last.next = NovoNodo
+                self.last = NovoNodo
+
+    def remove(self):
+        if self.first is not None:
+            self.first = self.first.next
+
+    def copia(self,aux=None):
+        aux = Fila()
+        aux2 = Fila()
+        aux.first = self.first
+        while aux.first is not None:
+            aux2.inserir(aux.first.dado)
+            aux.first = aux.first.next
+        return aux2
+
+num_elem = valida_entrada()
+elem_list = build_list(num_elem)
+arranjo_list = permuta(elem_list,num_elem)
+mostra(arranjo_list)
+
