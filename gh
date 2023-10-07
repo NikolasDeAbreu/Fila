@@ -1,0 +1,268 @@
+import pygame
+from pygame.locals import *
+from sys import exit
+import time
+
+SCREEN_SIZE = (640,600)
+SCREEN_WIDTH = 640
+SCREEN_HEIGHT = 600
+PLAYER_SHIP_SIZE = 100,100
+PLAYER_SHIP_WIDTH = 100
+PLAYER_DEFAULT_POSITION = (270,500) #Player will always start or restart on this position
+PLAYER_SHIP_ID = 1
+SHIP_SIZE = (60,60)
+PLAYER_SPEED = 100
+FIRST_ENEMY_DEFAULT_POSITION = (45,60)
+FIRST_ENEMY_DEFAULT_X = 45
+ENEMY_SPEED = 100
+NUMBER_SHIPS_ROW = 9
+SCORE_POS = 30,10
+LIVES_POS = 550,10
+
+#This class is responsible for managing the elements on screen and being the screen itself
+
+class Node:
+
+    #Initializing the Node class
+
+    def __init__(self, value=None, next_node=None):
+
+        self.value = value
+        self.next = next_node
+
+    #String representation of the Node class
+
+    def __repr__(self):
+        return "%s -> %s" % (self.value,self.next)
+
+class LinkedList:
+
+    #Initializing the parameters
+
+    def __init__(self):
+        self.head = None
+
+    #String representation of the Linked List class
+
+    def __repr__(self):
+        return "%s" % self.head
+
+    #Add a new element to the end of a Linked List
+
+    def add(self,ship):
+
+        aux_node = Node(ship)
+
+        if self.head is None:
+
+            self.head = aux_node
+
+        else:
+
+            aux_list = LinkedList()
+            aux_list.head = self.head
+            i = 0
+            while aux_list.head.next is not None:
+                aux_list.head = aux_list.head.next
+                i += 1
+            aux_list.head.next = aux_node
+
+class Space:
+
+    #Initializing the Space class
+
+    def __init__(self):
+
+        self.ships = LinkedList()
+        background_file_name = r'.\images\background\background.png'
+        self.background = pygame.image.load(background_file_name).convert()
+        self.score = 0
+        self.lives = 1
+        self.stage = 1
+
+
+#All of the game objects (the player ship, enemy ships, obstacles and bonus ship) will share some universal features
+
+class GameObject:
+
+    #Initializing the GameObject class
+
+    def __init__(self,id=None,screen_pos=None,image=None):
+
+        self.id = id
+        self.screen_pos = screen_pos
+        self.image = image
+        self.path = ".\images\g_obj" + str(self.id)
+
+    #String representation of the GameObject class
+
+    def __repr__(self):
+
+        return "id: %s x,y: %s image: %s" % (self.id,self.screen_pos,self.image)
+
+    #Atribute the name of the image file of the ship and it's path to a string
+
+    def create_image(self,pos):
+
+        game_object_file_name = self.path + "\g_obj" + str(self.id) + ".png"
+        self.image = pygame.image.load(game_object_file_name).convert_alpha()
+
+    #Show the ships on the screen
+
+    def show(self):
+
+        if self.id != 1:
+            screen.blit(pygame.transform.scale(self.image,SHIP_SIZE),self.screen_pos)
+        else:
+            screen.blit(pygame.transform.scale(self.image, PLAYER_SHIP_SIZE), self.screen_pos)
+
+    def move_object_x_axis(self,speed,time_function):
+
+        distance = speed * time_function
+        new_x = self.screen_pos[0] + distance
+        if (new_x + PLAYER_SHIP_WIDTH/1.5) <= SCREEN_WIDTH and new_x > -35:
+            self.screen_pos = (new_x,self.screen_pos[1])
+
+
+#Class for the game ships, including the player's.
+
+class Ship(GameObject):
+
+    #Initializing the Ship class
+
+    def __init__(self,id,screen_pos,image=None):
+        super().__init__(id,screen_pos,image=None)
+
+#function that will copy on the screen all units on its starting positions and fill the GameSpace dict with its x,y pos
+def game_start():
+
+    Game = Space()
+
+    Player_Ship = Ship(PLAYER_SHIP_ID,PLAYER_DEFAULT_POSITION)
+    Player_Ship.create_image(PLAYER_DEFAULT_POSITION)
+    Game.ships.add(Player_Ship)
+    id = 6 #Player ship has id 1. Enemy ships range from 2 to 6
+    ships_count = 0
+    x_ship_position, y_ship_position = FIRST_ENEMY_DEFAULT_POSITION
+    ship_width, ship_height = SHIP_SIZE
+
+    while id > 1: #It's done backwards because the stronger ships are the ones at the top of the screen
+
+        ship_position = (x_ship_position,y_ship_position)
+        Enemy_Ship = Ship(id,ship_position)
+        Enemy_Ship.create_image(ship_position)
+        Game.ships.add(Enemy_Ship)
+        ships_count += 1
+        x_ship_position += ship_width
+
+        if ships_count == NUMBER_SHIPS_ROW:
+            x_ship_position = FIRST_ENEMY_DEFAULT_X
+            y_ship_position += ship_height
+            id -= 1
+            ships_count = 0
+
+    return Game
+
+#Function to navigate each node from the linked list and display the image of each ship on the screen
+
+def show_ships(Game):
+
+    aux = LinkedList()
+    aux.head = Game.ships.head
+    while aux.head is not None:
+        aux.head.value.show()
+        aux.head = aux.head.next
+
+#Function to display the score and how many continues the player has left
+
+def show_text(Game,font):
+
+    score_surface = font.render("Score: %s" % Game.score, True, (255, 255, 255))
+    screen.blit(score_surface, SCORE_POS)
+
+    lives_surface = font.render("Lives: %s" % Game.lives, True, (255, 255, 255))
+    screen.blit(lives_surface, LIVES_POS)
+
+def move_enemy_ship(Ships_List, speed, time_function):
+
+    aux = LinkedList()
+    aux.head = Ships_List.head
+    while aux.head is not None:
+        if aux.head.value.id != 1:
+            aux.head.value.move_object_x_axis(speed,time_function)
+        aux.head = aux.head.next
+
+def check_reverse_movement(Ships_List, speed):
+
+    aux = LinkedList()
+    aux.head = Ships_List.head
+    reverse_movement = False
+    while aux.head is not None:
+        if aux.head.value.id != 1:
+            if (aux.head.value.screen_pos[0] + SHIP_SIZE[0]) >= (SCREEN_WIDTH-10):
+                reverse_movement = True
+                speed *= -1
+            elif (aux.head.value.screen_pos[0] - SHIP_SIZE[0]) <= -SHIP_SIZE[0] and speed < 0:
+                reverse_movement = True
+                speed *= -1
+        aux.head = aux.head.next
+    return speed, reverse_movement
+
+def advance_enemy_ships(Ships_List):
+
+    aux = LinkedList()
+    aux2 = Node()
+    aux.head = Ships_List.head
+    aux2.next = aux.head
+    while aux.head is not None:
+        if aux.head.value.id != 1:
+            new_y = aux.head.value.screen_pos[1] + 20
+            aux.head.value.screen_pos = (aux.head.value.screen_pos[0],new_y)
+        aux.head = aux.head.next
+    aux.head = aux2.next
+    return aux
+
+pygame.font.init()
+game_font = pygame.font.SysFont("arial", 18)
+game_clock = pygame.time.Clock()
+screen = pygame.display.set_mode(SCREEN_SIZE,0,32)
+pygame.display.set_caption("Space Invaders")
+Game_Space = game_start()
+second = 0
+enemy_ship_speed = 400
+advance_ships = False
+
+while True:
+
+    pressed_key = pygame.key.get_pressed()
+    time_passed = game_clock.tick(60)
+    time_seconds = time_passed / 1000.0
+    second += time_seconds
+
+    if advance_ships is True:
+        advance_ships = False
+        Game_Space.ships = advance_enemy_ships(Game_Space.ships)
+
+    if second >= 1:
+        move_enemy_ship(Game_Space.ships, enemy_ship_speed, time_seconds)
+        enemy_ship_speed, advance_ships = check_reverse_movement(Game_Space.ships, enemy_ship_speed)
+        second = 0
+
+    for event in pygame.event.get():
+        if event.type == QUIT:
+            exit()
+
+    screen.blit(Game_Space.background, (0,0))
+    show_ships(Game_Space)
+    show_text(Game_Space,game_font)
+
+    for key_constant, is_pressed in enumerate(pressed_key):
+        if is_pressed:
+            if key_constant == 79: #right
+                Game_Space.ships.head.value.move_object_x_axis(PLAYER_SPEED, time_seconds)
+            elif key_constant == 80: #left
+                Game_Space.ships.head.value.move_object_x_axis(-PLAYER_SPEED, time_seconds)
+
+    pygame.display.update()
+
+
